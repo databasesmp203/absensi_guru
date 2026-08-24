@@ -4,21 +4,24 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Aplikasi Absensi Guru Mobile</title>
-<!-- Meta Tag untuk Warna Header Chrome Android -->
-<meta name="theme-color" content="#ffffff">
 
-<!-- Favicon Standar Browser/PC -->
-<link rel="icon" type="image/x-icon" href="favicon.ico">
-<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+    <!-- METADATA & FAVICON UNTUK ANDROID / CHROME (DITAMBAHKAN) -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#4f46e5">
 
-<!-- Favicon untuk Android & Pintasan Layar Utama -->
-<link rel="icon" type="image/png" sizes="192x192" href="android-chrome-192x192.png">
-<link rel="icon" type="image/png" sizes="512x512" href="android-chrome-512x512.png">
-<link rel="manifest" href="site.webmanifest">
+    <!-- Favicon Standar -->
+    <link rel="icon" type="image/x-icon" href="./favicon.ico">
+    <link rel="shortcut icon" href="./favicon.ico">
 
-<!-- Favicon untuk iOS Safari -->
-<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+    <!-- Favicon Android & Chrome (Layar Utama) -->
+    <link rel="icon" type="image/png" sizes="192x192" href="./android-chrome-192x192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="./android-chrome-512x512.png">
+    <link rel="manifest" href="./site.webmanifest">
+
+    <!-- Favicon iOS / Safari -->
+    <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
+
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
 
@@ -110,8 +113,8 @@
       // =========================================================================
       const KONFIGURASI_SEKOLAH = {
         NAMA_SEKOLAH: "SMA Negeri 1 Pembelajaran",
-        LATITUDE: -7.257472,     // Latitude Default Sekolah
-        LONGITUDE: 112.752088,   // Longitude Default Sekolah
+        LATITUDE: -6.765746,     // Latitude Default Sekolah
+        LONGITUDE: 108.419519,   // Longitude Default Sekolah
         RADIUS_MAX_METER: 150    // Batas Toleransi Radius Absensi (Meter)
       };
 
@@ -1401,7 +1404,6 @@
 
             </div>
 
-            {}
             {/* NAVIGATION BAR BOTTOM */}
             <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t border-slate-200 py-2 px-6 flex justify-around items-center z-40 no-print shadow-lg">
               <button
