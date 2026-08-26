@@ -5,23 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Aplikasi Absensi Guru Mobile</title>
 
-    <!-- METADATA & FAVICON UNTUK ANDROID / CHROME (DITAMBAHKAN) -->
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="theme-color" content="#4f46e5">
-
-    <!-- Favicon Standar -->
-    <link rel="icon" type="image/x-icon" href="./favicon.ico">
-    <link rel="shortcut icon" href="./favicon.ico">
-
-    <!-- Favicon Android & Chrome (Layar Utama) -->
-    <link rel="icon" type="image/png" sizes="192x192" href="./android-chrome-192x192.png">
-    <link rel="icon" type="image/png" sizes="512x512" href="./android-chrome-512x512.png">
-    <link rel="manifest" href="./site.webmanifest">
-
-    <!-- Favicon iOS / Safari -->
-    <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
-
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
 
@@ -32,7 +15,7 @@
     <!-- Babel Standalone for JSX Compilation -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-    <!-- html2pdf.js for High-Quality Client-Side PDF Generation -->
+    <!-- html2pdf.js for Client-Side PDF Generation -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
     <style>
@@ -108,13 +91,14 @@
 
     <script type="text/babel">
       // =========================================================================
-      // KONFIGURASI GPS SEKOLAH TERTANAM DALAM KODE (PERMANEN)
-      // Ubah koordinat dan batas radius di bawah ini sesuai lokasi sekolah Anda
+      // KONFIGURASI GPS SEKOLAH DEFAULT TERTANAM DALAM KODE
+      // Ubah nilai LATITUDE, LONGITUDE, RADIUS_MAX_METER, dan NAMA_SEKOLAH di bawah ini.
+      // Perubahan akan LANGSUNG berlaku secara instan saat kode disimpan dan halaman di-refresh.
       // =========================================================================
       const KONFIGURASI_SEKOLAH = {
         NAMA_SEKOLAH: "SMA Negeri 1 Pembelajaran",
-        LATITUDE: -6.765746,     // Latitude Default Sekolah
-        LONGITUDE: 108.419519,   // Longitude Default Sekolah
+        LATITUDE: -7.257472,     // Latitude Default Sekolah
+        LONGITUDE: 112.752088,   // Longitude Default Sekolah
         RADIUS_MAX_METER: 150    // Batas Toleransi Radius Absensi (Meter)
       };
 
@@ -129,9 +113,10 @@
         return date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }).replace(/\./g, ':');
       };
 
+      // Formula Haversine Presisi untuk Mengukur Jarak Koordinat dalam Meter
       function calculateDistance(lat1, lon1, lat2, lon2) {
         if (!lat1 || !lon1 || !lat2 || !lon2) return 0;
-        const R = 6371000; // Earth radius in meters
+        const R = 6371000; // Radius bumi dalam meter
         const dLat = (lat2 - lat1) * Math.PI / 180;
         const dLon = (lon2 - lon1) * Math.PI / 180;
         const a = 
@@ -221,19 +206,6 @@
         </svg>
       );
 
-      const IconSettings = ({ className = "w-5 h-5" }) => (
-        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-          <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-        </svg>
-      );
-
-      const IconLogOut = ({ className = "w-5 h-5" }) => (
-        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-        </svg>
-      );
-
       const IconUpload = ({ className = "w-5 h-5" }) => (
         <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
@@ -258,11 +230,11 @@
 
         // Teacher Profile State
         const [userProfile, setUserProfile] = useState(() => {
-          const saved = localStorage.getItem('teacher_profile_data_v15');
+          const saved = localStorage.getItem('teacher_profile_data_v16');
           const defaultProfile = {
             nama: '',
             nip: '',
-            sekolah: KONFIGURASI_SEKOLAH.NAMA_SEKOLAH,
+            sekolah: '',
             jabatan: 'Guru Mata Pelajaran',
             statusPNS: 'PNS / ASN',
             foto: null
@@ -280,7 +252,7 @@
         const [schedulePin, setSchedulePin] = useState(() => localStorage.getItem('teacher_schedule_pin') || '1234');
 
         const [dailySchedules, setDailySchedules] = useState(() => {
-          const saved = localStorage.getItem('teacher_daily_schedules_v15');
+          const saved = localStorage.getItem('teacher_daily_schedules_v16');
           return saved ? JSON.parse(saved) : {
             1: { dayName: 'Senin', masuk: '07:00', pulang: '15:30', isLibur: false },
             2: { dayName: 'Selasa', masuk: '07:00', pulang: '15:30', isLibur: false },
@@ -294,7 +266,7 @@
         });
 
         const [attendanceLogs, setAttendanceLogs] = useState(() => {
-          const saved = localStorage.getItem('teacher_attendance_logs_v15');
+          const saved = localStorage.getItem('teacher_attendance_logs_v16');
           return saved ? JSON.parse(saved) : [];
         });
 
@@ -317,6 +289,7 @@
 
         const [isEditModalOpen, setIsEditModalOpen] = useState(false);
         const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+        
         const [editFormData, setEditFormData] = useState({ ...userProfile });
         const [editScheduleData, setEditScheduleData] = useState({ ...dailySchedules });
 
@@ -338,15 +311,10 @@
 
         const fileInputRef = useRef(null);
 
-        const [todayAbsensi, setTodayAbsensi] = useState({
-          datang: null,
-          pulang: null,
-          dinasDatang: null,
-          dinasPulang: null,
-          alfa: null,
-          statusDatang: null,
-          statusPulang: null
-        });
+        const showToast = (text, type = 'info') => {
+          setToastMessage({ text, type });
+          setTimeout(() => setToastMessage(null), 3500);
+        };
 
         useEffect(() => {
           let storedId = localStorage.getItem('android_device_id');
@@ -357,48 +325,43 @@
           setDeviceId(storedId);
 
           const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+          
+          // GPS Otomatis Aktif Saat Aplikasi Dibuka
           handleGetGpsLocation(true);
 
-          return () => clearInterval(timer);
+          // Geolocation Continuous Watcher untuk Pembaruan Otomatis Realtime
+          let watchId = null;
+          if (navigator.geolocation) {
+            watchId = navigator.geolocation.watchPosition(
+              (pos) => {
+                const lat = pos.coords.latitude;
+                const lng = pos.coords.longitude;
+                const acc = Math.round(pos.coords.accuracy);
+
+                setCurrentLocation({ lat, lng, accuracy: acc });
+                const targetLat = KONFIGURASI_SEKOLAH.LATITUDE;
+                const targetLng = KONFIGURASI_SEKOLAH.LONGITUDE;
+                const dist = calculateDistance(lat, lng, targetLat, targetLng);
+                setDistanceToSchool(dist);
+              },
+              (err) => {
+                console.warn('Auto GPS Watcher Error:', err);
+              },
+              { enableHighAccuracy: true, timeout: 15000, maximumAge: 3000 }
+            );
+          }
+
+          return () => {
+            clearInterval(timer);
+            if (watchId !== null && navigator.geolocation) {
+              navigator.geolocation.clearWatch(watchId);
+            }
+          };
         }, []);
 
         useEffect(() => {
-          const todayStr = formatLocalDate(currentTime);
-          const todayLogs = attendanceLogs.filter(log => log.tanggal === todayStr);
-
-          const logDatang = todayLogs.find(l => l.tipe === 'Kedatangan');
-          const logPulang = todayLogs.find(l => l.tipe === 'Kepulangan');
-          const logDinasDatang = todayLogs.find(l => l.tipe === 'Dinas Kedatangan' || l.tipe === 'Dinas Luar');
-          const logDinasPulang = todayLogs.find(l => l.tipe === 'Dinas Kepulangan' || (l.tipe === 'Dinas Luar' && l.pulang !== '-'));
-          const logAlfa = todayLogs.find(l => l.tipe === 'Alfa' || l.status.includes('Alfa'));
-
-          setTodayAbsensi({
-            datang: logDatang ? logDatang.datang : null,
-            pulang: logPulang ? logPulang.pulang : null,
-            dinasDatang: logDinasDatang ? logDinasDatang.datang : null,
-            dinasPulang: logDinasPulang ? logDinasPulang.pulang : (logDinasDatang && logDinasDatang.pulang !== '-' ? logDinasDatang.pulang : null),
-            alfa: logAlfa ? logAlfa.keterangan : null,
-            statusDatang: logDatang ? logDatang.status : null,
-            statusPulang: logPulang ? logPulang.status : null
-          });
-        }, [currentTime, attendanceLogs]);
-
-        useEffect(() => {
-          localStorage.setItem('teacher_attendance_logs_v15', JSON.stringify(attendanceLogs));
+          localStorage.setItem('teacher_attendance_logs_v16', JSON.stringify(attendanceLogs));
         }, [attendanceLogs]);
-
-        useEffect(() => {
-          localStorage.setItem('teacher_profile_data_v15', JSON.stringify(userProfile));
-        }, [userProfile]);
-
-        useEffect(() => {
-          localStorage.setItem('teacher_daily_schedules_v15', JSON.stringify(dailySchedules));
-        }, [dailySchedules]);
-
-        const showToast = (msg, type = 'success') => {
-          setToastMessage({ text: msg, type });
-          setTimeout(() => setToastMessage(null), 3500);
-        };
 
         const handleGetGpsLocation = (silent = false) => {
           return new Promise((resolve) => {
@@ -414,6 +377,9 @@
               return;
             }
 
+            const targetLat = KONFIGURASI_SEKOLAH.LATITUDE;
+            const targetLng = KONFIGURASI_SEKOLAH.LONGITUDE;
+
             const onGpsSuccess = (pos) => {
               const lat = pos.coords.latitude;
               const lng = pos.coords.longitude;
@@ -422,12 +388,12 @@
               const locationData = { lat, lng, accuracy: acc };
               setCurrentLocation(locationData);
               
-              const dist = calculateDistance(lat, lng, KONFIGURASI_SEKOLAH.LATITUDE, KONFIGURASI_SEKOLAH.LONGITUDE);
+              const dist = calculateDistance(lat, lng, targetLat, targetLng);
               setDistanceToSchool(dist);
               setIsGpsLoading(false);
 
               if (!silent) {
-                showToast(`GPS Terkunci! Jarak ke sekolah: ${dist} meter`);
+                showToast(`GPS Terkunci! Jarak ke sekolah: ${dist}m (Akurasi: ±${acc}m)`);
               }
               resolve({ success: true, locationData, dist });
             };
@@ -437,9 +403,9 @@
                 onGpsSuccess,
                 (finalErr) => {
                   setIsGpsLoading(false);
-                  let errMsg = 'Gagal mengunci posisi GPS. Aktifkan Lokasi HP!';
-                  if (finalErr.code === 1) errMsg = 'Izin lokasi GPS ditolak oleh perangkat HP.';
-                  else if (finalErr.code === 2) errMsg = 'Sinyal GPS tidak tersedia. Coba di area terbuka.';
+                  let errMsg = 'Gagal mengunci lokasi GPS. Aktifkan Lokasi/GPS HP!';
+                  if (finalErr.code === 1) errMsg = 'Izin lokasi GPS ditolak oleh perangkat.';
+                  else if (finalErr.code === 2) errMsg = 'Sinyal GPS tidak tersedia.';
                   else if (finalErr.code === 3) errMsg = 'Waktu pencarian GPS habis (Timeout).';
 
                   setGpsError(errMsg);
@@ -462,11 +428,14 @@
           if (!webAppUrl) return;
           setIsSyncingCloud(true);
           try {
+            const targetNip = (payloadData && payloadData.nip) || (payloadData && payloadData.profile && payloadData.profile.nip) || userProfile.nip;
+            const targetNama = (payloadData && payloadData.namaGuru) || (payloadData && payloadData.profile && payloadData.profile.nama) || userProfile.nama;
+
             const bodyPayload = {
               action: actionType,
-              nip: userProfile.nip,
+              nip: targetNip,
               deviceId: deviceId,
-              namaGuru: userProfile.nama,
+              namaGuru: targetNama,
               data: payloadData || {
                 profile: { ...userProfile, deviceId },
                 schedules: dailySchedules,
@@ -483,11 +452,14 @@
             const result = await response.json();
             if (result.status === 'success') {
               showToast(result.message || 'Tersimpan otomatis ke Cloud Google Sheets!');
+              return true;
             } else if (result.status === 'error') {
               showToast(result.message || 'Gagal tersinkron ke Cloud', 'error');
+              return false;
             }
           } catch (e) {
             console.warn('Sync Cloud Warning:', e);
+            return false;
           } finally {
             setIsSyncingCloud(false);
           }
@@ -519,6 +491,19 @@
 
         const todayIndex = currentTime.getDay();
         const todaySchedule = dailySchedules[todayIndex] || { dayName: 'Hari Ini', masuk: '07:00', pulang: '15:30', isLibur: false };
+
+        const todayStr = formatLocalDate(currentTime);
+        const todayLogs = attendanceLogs.filter(l => l.tanggal === todayStr);
+
+        const todayAbsensi = {
+          datang: todayLogs.find(l => l.tipe === 'Kedatangan')?.datang || null,
+          pulang: todayLogs.find(l => l.tipe === 'Kepulangan')?.pulang || null,
+          dinasDatang: todayLogs.find(l => l.tipe === 'Dinas Kedatangan')?.datang || null,
+          dinasPulang: todayLogs.find(l => l.tipe === 'Dinas Kepulangan')?.pulang || null,
+          alfa: todayLogs.find(l => l.tipe === 'Alfa')?.keterangan || null,
+          statusDatang: todayLogs.find(l => l.tipe === 'Kedatangan')?.status || null,
+          statusPulang: todayLogs.find(l => l.tipe === 'Kepulangan')?.status || null
+        };
 
         const checkTimeStatus = (type) => {
           if (todaySchedule.isLibur) return { status: 'Hari Libur' };
@@ -573,19 +558,21 @@
           let locText = 'GPS Tidak Aktif / Gagal Mengunci';
           let mapsUrl = '';
 
+          const namaSekolahAktif = userProfile.sekolah || KONFIGURASI_SEKOLAH.NAMA_SEKOLAH;
+          const maxRadius = KONFIGURASI_SEKOLAH.RADIUS_MAX_METER;
+
           if (gpsRes.success && gpsRes.locationData && gpsRes.locationData.lat) {
             const distVal = gpsRes.dist !== null ? gpsRes.dist : distanceToSchool;
             const distStr = distVal !== null ? ` (${distVal}m)` : '';
-            const namaSekolahAktif = userProfile.sekolah || KONFIGURASI_SEKOLAH.NAMA_SEKOLAH;
             
             locText = `${namaSekolahAktif}${distStr} [${gpsRes.locationData.lat.toFixed(4)}, ${gpsRes.locationData.lng.toFixed(4)}]`;
             mapsUrl = `https://www.google.com/maps?q=${gpsRes.locationData.lat},${gpsRes.locationData.lng}`;
 
-            if (distVal !== null && distVal > KONFIGURASI_SEKOLAH.RADIUS_MAX_METER) {
-              showToast(`Peringatan: Anda berada di luar radius ${namaSekolahAktif} (${distVal}m > ${KONFIGURASI_SEKOLAH.RADIUS_MAX_METER}m)`, 'error');
+            if (distVal !== null && distVal > maxRadius) {
+              showToast(`Peringatan: Berada di luar radius ${namaSekolahAktif} (${distVal}m > ${maxRadius}m)`, 'error');
             }
           } else {
-            showToast(gpsRes.message || 'Presensi dicatat, namun GPS gagal dikunci.', 'error');
+            showToast(gpsRes.message || 'Presensi dicatat, namun lokasi GPS belum terkunci.', 'error');
           }
 
           if (type === 'datang') {
@@ -650,6 +637,53 @@
           setIsDinasModalOpen(true);
         };
 
+        const handleSubmitDinas = async (e) => {
+          e.preventDefault();
+          if (!dinasPurpose.trim()) {
+            showToast('Tujuan atau nama kegiatan dinas wajib diisi!', 'error');
+            return;
+          }
+
+          showToast('Mengunci lokasi GPS untuk presensi Dinas...', 'info');
+          const gpsRes = await handleGetGpsLocation(true);
+
+          const todayStr = formatLocalDate(currentTime);
+          const timeStr = dinasTime || formatLocalTime(currentTime);
+
+          let locText = 'GPS Tidak Aktif';
+          let mapsUrl = '';
+          const namaSekolahAktif = userProfile.sekolah || KONFIGURASI_SEKOLAH.NAMA_SEKOLAH;
+
+          if (gpsRes.success && gpsRes.locationData && gpsRes.locationData.lat) {
+            const distVal = gpsRes.dist !== null ? gpsRes.dist : distanceToSchool;
+            const distStr = distVal !== null ? ` (${distVal}m)` : '';
+            locText = `${namaSekolahAktif}${distStr} [${gpsRes.locationData.lat.toFixed(4)}, ${gpsRes.locationData.lng.toFixed(4)}]`;
+            mapsUrl = `https://www.google.com/maps?q=${gpsRes.locationData.lat},${gpsRes.locationData.lng}`;
+          }
+
+          const stText = dinasLetterNo.trim() ? ` (No. ST: ${dinasLetterNo.trim()})` : '';
+          const tipeFix = dinasType === 'datang' ? 'Dinas Kedatangan' : 'Dinas Kepulangan';
+
+          const newLog = {
+            id: Date.now(),
+            nip: userProfile.nip,
+            namaGuru: userProfile.nama,
+            tanggal: todayStr,
+            datang: dinasType === 'datang' ? timeStr : (todayAbsensi.dinasDatang || '-'),
+            pulang: dinasType === 'pulang' ? timeStr : '-',
+            tipe: tipeFix,
+            status: 'Dinas Luar',
+            lokasi: locText,
+            mapsUrl: mapsUrl,
+            keterangan: `Dinas: ${dinasPurpose.trim()}${stText}`
+          };
+
+          setAttendanceLogs(prev => [newLog, ...prev]);
+          showToast(`Presensi ${tipeFix} Jam ${timeStr} tersimpan!`);
+          syncWithCloud('saveAttendance', newLog);
+          setIsDinasModalOpen(false);
+        };
+
         const handleOpenAlfaModal = () => {
           setAlfaReason('');
           handleGetGpsLocation(true);
@@ -687,7 +721,7 @@
           };
 
           setAttendanceLogs(prev => [newLog, ...prev]);
-          showToast('Catatan Alfa / Tanpa Keterangan tersimpan!', 'info');
+          showToast('Catatan Alfa tersimpan!', 'info');
           syncWithCloud('saveAttendance', newLog);
           setIsAlfaModalOpen(false);
         };
@@ -750,7 +784,7 @@
           html2pdf().set(opt).from(element).output('datauristring').then((dataUri) => {
             setIsGeneratingPdf(false);
             
-            // Kodular WebViewer Bridge Signal
+            // Kodular / MIT App Inventor WebViewer Bridge Signal
             if (window.AppInventor && window.AppInventor.setWebViewString) {
               window.AppInventor.setWebViewString("PDF_SAVE:" + fileName + "|||" + dataUri);
             } else {
@@ -774,28 +808,28 @@
         };
 
         const handleImageUpload = (e) => {
-          const file = e.target.files[0];
+          const file = e.target.files && e.target.files[0];
           if (file) {
             showToast('Memproses & mengompresi foto...', 'info');
             const reader = new FileReader();
             reader.onload = (event) => {
               const img = new Image();
               img.onload = () => {
-                // Kompresi & Resize Foto via HTML5 Canvas (Maks 300x300px)
+                // Kompresi HTML5 Canvas Max 300x300px (~20KB)
                 const canvas = document.createElement('canvas');
-                const MAX_WIDTH = 300;
-                const MAX_HEIGHT = 300;
                 let width = img.width;
                 let height = img.height;
+                const MAX_WIDTH = 300;
+                const MAX_HEIGHT = 300;
 
                 if (width > height) {
                   if (width > MAX_WIDTH) {
-                    height = Math.round(height * (MAX_WIDTH / width));
+                    height *= MAX_WIDTH / width;
                     width = MAX_WIDTH;
                   }
                 } else {
                   if (height > MAX_HEIGHT) {
-                    width = Math.round(width * (MAX_HEIGHT / height));
+                    width *= MAX_HEIGHT / height;
                     height = MAX_HEIGHT;
                   }
                 }
@@ -804,14 +838,10 @@
                 canvas.height = height;
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0, width, height);
-
-                // Hasilkan Base64 JPEG Ringan (~20KB - 30KB)
                 const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+
                 setEditFormData(prev => ({ ...prev, foto: compressedBase64 }));
-                showToast('Foto profil berhasil dioptimalkan!');
-              };
-              img.onerror = () => {
-                showToast('Gagal memproses file gambar.', 'error');
+                showToast('Foto profil berhasil diunggah & dikompresi!');
               };
               img.src = event.target.result;
             };
@@ -819,12 +849,45 @@
           }
         };
 
-        const handleSaveProfileSubmit = (e) => {
+        const handleSaveProfileSubmit = async (e) => {
           e.preventDefault();
+
+          // Validasi Keberadaan NIP di Cloud sebelum simpan lokal
+          if (webAppUrl && editFormData.nip) {
+            setIsSyncingCloud(true);
+            showToast('Memverifikasi NIP dan Perangkat ke Cloud...', 'info');
+            try {
+              const bodyPayload = {
+                action: 'saveProfile',
+                nip: editFormData.nip,
+                deviceId: deviceId,
+                namaGuru: editFormData.nama,
+                data: { ...editFormData, deviceId }
+              };
+
+              const response = await fetch(webAppUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify(bodyPayload)
+              });
+
+              const result = await response.json();
+              if (result.status === 'error') {
+                showToast(result.message || 'NIP ini sudah terdaftar di HP lain!', 'error');
+                setIsSyncingCloud(false);
+                return; // Batalkan simpan jika NIP sudah terdaftar di HP lain
+              }
+            } catch (err) {
+              console.warn('Verifikasi Cloud Warning:', err);
+            } finally {
+              setIsSyncingCloud(false);
+            }
+          }
+
           setUserProfile(editFormData);
+          localStorage.setItem('teacher_profile_data_v16', JSON.stringify(editFormData));
           setIsEditModalOpen(false);
-          showToast('Profil Guru berhasil diperbarui!');
-          syncWithCloud('saveProfile', { ...editFormData, deviceId });
+          showToast('Profil Guru berhasil disimpan & terikat pada HP ini!');
         };
 
         const handleVerifyPinAndOpenSchedule = (e) => {
@@ -841,6 +904,7 @@
         const handleSaveScheduleSubmit = (e) => {
           e.preventDefault();
           setDailySchedules(editScheduleData);
+          localStorage.setItem('teacher_daily_schedules_v16', JSON.stringify(editScheduleData));
           setIsScheduleModalOpen(false);
           showToast('Jadwal operasional berhasil diperbarui!');
           syncWithCloud('saveSchedule', editScheduleData);
@@ -852,10 +916,13 @@
           return y === selectedYear && m === selectedMonth;
         });
 
-        const totalHadir = filteredLogs.filter(l => l.status.includes('Tepat') || l.status.includes('Terlambat')).length;
-        const totalTerlambat = filteredLogs.filter(l => l.status.includes('Terlambat')).length;
-        const totalDinas = filteredLogs.filter(l => l.status.includes('Dinas') || l.tipe.includes('Dinas')).length;
-        const totalAlfa = filteredLogs.filter(l => l.status.includes('Alfa') || l.tipe.includes('Alfa')).length;
+        const totalHadir = filteredLogs.filter(l => l.status && (l.status.includes('Tepat') || l.status.includes('Terlambat'))).length;
+        const totalTerlambat = filteredLogs.filter(l => l.status && l.status.includes('Terlambat')).length;
+        const totalDinas = filteredLogs.filter(l => (l.status && l.status.includes('Dinas')) || (l.tipe && l.tipe.includes('Dinas'))).length;
+        const totalAlfa = filteredLogs.filter(l => (l.status && l.status.includes('Alfa')) || (l.tipe && l.tipe.includes('Alfa'))).length;
+
+        const maxRadiusActive = KONFIGURASI_SEKOLAH.RADIUS_MAX_METER;
+        const isWithinRadius = distanceToSchool !== null && distanceToSchool <= maxRadiusActive;
 
         return (
           <div className="flex flex-col min-h-screen bg-slate-100 font-sans max-w-md mx-auto shadow-2xl relative border-x border-slate-200">
@@ -878,10 +945,7 @@
                         src={userProfile.foto} 
                         alt={userProfile.nama} 
                         className="w-full h-full object-cover"
-                        onError={(e) => {
-                          // Fallback jika foto lama rusak/corrupt
-                          e.target.style.display = 'none';
-                        }} 
+                        onError={(e) => { e.target.style.display = 'none'; }} 
                       />
                     ) : (
                       userProfile.nama ? userProfile.nama.charAt(0).toUpperCase() : 'G'
@@ -904,10 +968,10 @@
                     }}
                     className="flex items-center gap-1 bg-white/20 hover:bg-white/30 text-white px-2.5 py-1 rounded-lg text-xs font-medium backdrop-blur-sm border border-white/20"
                   >
-                    <IconEdit className="w-3.5 h-3.5" /> Edit
+                    <IconEdit className="w-3.5 h-3.5" /> Edit Profil
                   </button>
                   <span className="text-[10px] font-semibold text-emerald-300 bg-black/20 px-2 py-0.5 rounded-md flex items-center gap-1 border border-emerald-500/30">
-                    <IconShield className="w-3 h-3 text-emerald-400" /> 1 HP = 1 Profil Guru
+                    <IconShield className="w-3 h-3 text-emerald-400" /> 1 HP = 1 Profil
                   </span>
                 </div>
               </div>
@@ -928,16 +992,16 @@
                   <IconShield className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
                   <div>
                     <p className="font-bold mb-0.5">Lengkapi Profil Guru Anda</p>
-                    <p className="text-[11px] text-amber-700">Silakan isi Nama Lengkap dan NIP/NUPTK di menu Profil agar presensi dan laporan PDF tercatat secara resmi.</p>
+                    <p className="text-[11px] text-amber-700">Isi Nama Lengkap dan NIP/NUPTK di menu Profil agar presensi dan laporan PDF tercatat secara resmi.</p>
                   </div>
                 </div>
               )}
 
-              {/* TAB 1: HOME / PRESENSI */}
+              {/* TAB 1: HOME ABSENSI */}
               {activeTab === 'home' && (
                 <div className="space-y-4">
                   
-                  {/* Jam Realtime & Lock GPS */}
+                  {/* Jam Realtime & Status GPS Sekolah */}
                   <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 text-center relative overflow-hidden">
                     <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 to-blue-500"></div>
                     <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
@@ -947,38 +1011,56 @@
                       {formatLocalTime(currentTime)}
                     </div>
 
-                    <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between">
-                      <div className="text-left text-[11px] text-slate-600">
-                        <p className="font-bold flex items-center gap-1 text-slate-700">
-                          <IconMapPin className="w-3.5 h-3.5 text-indigo-600" /> GPS Lokasi Sekolah
-                        </p>
-                        {currentLocation.lat ? (
-                          <div className="text-[10px] text-slate-500 font-mono">
-                            <p className="font-bold font-sans text-indigo-700 text-[11px] leading-tight">
-                              {userProfile.sekolah || KONFIGURASI_SEKOLAH.NAMA_SEKOLAH}
-                            </p>
-                            <span>
-                              {currentLocation.lat.toFixed(4)}, {currentLocation.lng.toFixed(4)}
-                              {distanceToSchool !== null && (
-                                <span className={`ml-1 font-bold ${distanceToSchool <= KONFIGURASI_SEKOLAH.RADIUS_MAX_METER ? 'text-emerald-600' : 'text-amber-600'}`}>
-                                  ({distanceToSchool}m)
-                                </span>
-                              )}
-                            </span>
-                          </div>
-                        ) : (
-                          <p className="text-[10px] text-amber-600 italic">Belum terkunci (Otomatis saat Absen)</p>
-                        )}
+                    <div className="mt-2 pt-2.5 border-t border-slate-100 flex flex-col gap-2">
+                      <div className="flex justify-between items-center text-left text-[11px]">
+                        <div>
+                          <p className="font-bold flex items-center gap-1 text-slate-700">
+                            <IconMapPin className="w-3.5 h-3.5 text-indigo-600" /> {userProfile.sekolah || KONFIGURASI_SEKOLAH.NAMA_SEKOLAH}
+                          </p>
+                          <p className="text-[10px] text-slate-400 font-mono">
+                            Target GPS: {KONFIGURASI_SEKOLAH.LATITUDE}, {KONFIGURASI_SEKOLAH.LONGITUDE} (Max {maxRadiusActive}m)
+                          </p>
+                        </div>
                       </div>
 
-                      <button
-                        onClick={() => handleGetGpsLocation(false)}
-                        disabled={isGpsLoading}
-                        className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 px-2.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 active:scale-95 transition-all"
-                      >
-                        <IconRefresh className={`w-3.5 h-3.5 ${isGpsLoading ? 'animate-spin' : ''}`} />
-                        {isGpsLoading ? 'Mengunci...' : 'Kunci GPS'}
-                      </button>
+                      <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 flex justify-between items-center text-xs">
+                        <div className="text-left font-mono text-[10px]">
+                          {currentLocation.lat ? (
+                            <div>
+                              <p className="text-slate-700 font-sans font-bold text-[11px] flex items-center gap-1.5">
+                                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping inline-block"></span>
+                                Posisi HP: {currentLocation.lat.toFixed(4)}, {currentLocation.lng.toFixed(4)}
+                              </p>
+                              <p className="text-slate-500">
+                                Jarak: <strong className={isWithinRadius ? 'text-emerald-600' : 'text-amber-600'}>
+                                  {distanceToSchool !== null ? `${distanceToSchool} meter` : 'Mengukur...'}
+                                </strong>
+                                {currentLocation.accuracy && ` (Akurasi ±${currentLocation.accuracy}m)`}
+                              </p>
+                            </div>
+                          ) : (
+                            <p className="text-amber-600 italic flex items-center gap-1">
+                              <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse inline-block"></span>
+                              GPS Otomatis Mengunci Lokasi HP...
+                            </p>
+                          )}
+                        </div>
+
+                        <span className="text-[9px] bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold px-2 py-1 rounded-lg flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span> GPS Auto
+                        </span>
+                      </div>
+
+                      {distanceToSchool !== null && (
+                        <div className={`p-1.5 rounded-lg text-[10px] font-bold text-center flex items-center justify-center gap-1.5 ${
+                          isWithinRadius ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-amber-100 text-amber-800 border border-amber-300'
+                        }`}>
+                          <IconMapPin className="w-3.5 h-3.5" />
+                          {isWithinRadius 
+                            ? `Status: DALAM RADIUS SEKOLAH (${distanceToSchool}m <= ${maxRadiusActive}m)` 
+                            : `Status: LUAR RADIUS SEKOLAH (${distanceToSchool}m > ${maxRadiusActive}m)`}
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -1100,7 +1182,7 @@
                       }`}
                     >
                       <div className="text-left flex items-center gap-3">
-                        <IconLogOut className="w-8 h-8 opacity-80" />
+                        <IconClock className="w-8 h-8 opacity-80" />
                         <div>
                           <p className="font-extrabold text-base">KLIK KEPULANGAN</p>
                           <p className="text-xs text-blue-100">
@@ -1113,7 +1195,7 @@
                       </span>
                     </button>
 
-                    {/* Tombol Dinas Luar & Tombol Alfa */}
+                    {/* Tombol Dinas Luar */}
                     <div className="grid grid-cols-2 gap-2">
                       <button
                         onClick={() => handleOpenDinasModal('datang')}
@@ -1504,7 +1586,7 @@
                       />
                       {userProfile.nip && (
                         <p className="text-[10px] text-slate-400 mt-1">
-                          NIP telah terikat pada perangkat HP ini ({deviceId}). Hubungi Admin jika ada kesalahan NIP.
+                          NIP terikat pada HP ini ({deviceId}). Jika ingin mengganti NIP, gunakan tombol Reset Data.
                         </p>
                       )}
                     </div>
