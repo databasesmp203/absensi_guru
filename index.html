@@ -96,10 +96,10 @@
       // Perubahan akan LANGSUNG berlaku secara instan saat kode disimpan dan halaman di-refresh.
       // =========================================================================
       const KONFIGURASI_SEKOLAH = {
-        NAMA_SEKOLAH: "SMP IT NU ASSHOFIYAH",
-        LATITUDE: -6.765383,     // Latitude Default Sekolah
-        LONGITUDE: 108.419509,   // Longitude Default Sekolah
-        RADIUS_MAX_METER: 5    // Batas Toleransi Radius Absensi (Meter)
+        NAMA_SEKOLAH: "SMA Negeri 1 Pembelajaran",
+        LATITUDE: -7.257472,     // Latitude Default Sekolah
+        LONGITUDE: 112.752088,   // Longitude Default Sekolah
+        RADIUS_MAX_METER: 150    // Batas Toleransi Radius Absensi (Meter)
       };
 
       const formatLocalDate = (date = new Date()) => {
@@ -226,7 +226,7 @@
       );
 
       function App() {
-        const { useState, useEffect, useRef } = React;
+        const { useState, useEffect, useRef, useMemo } = React;
 
         // Teacher Profile State
         const [userProfile, setUserProfile] = useState(() => {
@@ -281,6 +281,7 @@
 
         const [selectedMonth, setSelectedMonth] = useState(() => (new Date().getMonth() + 1).toString().padStart(2, '0'));
         const [selectedYear, setSelectedYear] = useState(() => new Date().getFullYear().toString());
+        const [displayLimit, setDisplayLimit] = useState(25); // Pagination for Rekap to prevent UI lag
 
         const [toastMessage, setToastMessage] = useState(null);
         const [isPinModalOpen, setIsPinModalOpen] = useState(false);
@@ -326,10 +327,10 @@
 
           const timer = setInterval(() => setCurrentTime(new Date()), 1000);
           
-          // GPS Otomatis Aktif Saat Aplikasi Dibuka
+          // GPS Otomatis Aktif Instan Saat Aplikasi Dibuka
           handleGetGpsLocation(true);
 
-          // Geolocation Continuous Watcher untuk Pembaruan Otomatis Realtime
+          // Geolocation Continuous Watcher untuk Pembaruan Otomatis Realtime Presisi
           let watchId = null;
           if (navigator.geolocation) {
             watchId = navigator.geolocation.watchPosition(
@@ -345,9 +346,9 @@
                 setDistanceToSchool(dist);
               },
               (err) => {
-                console.warn('Auto GPS Watcher Error:', err);
+                console.warn('Auto GPS Watcher Notice:', err);
               },
-              { enableHighAccuracy: true, timeout: 15000, maximumAge: 3000 }
+              { enableHighAccuracy: true, timeout: 10000, maximumAge: 3000 }
             );
           }
 
@@ -363,6 +364,7 @@
           localStorage.setItem('teacher_attendance_logs_v16', JSON.stringify(attendanceLogs));
         }, [attendanceLogs]);
 
+        // Pengunci & Pembaca Lokasi GPS Super Cepat (Fast-Read with Cache & Fallback)
         const handleGetGpsLocation = (silent = false) => {
           return new Promise((resolve) => {
             setIsGpsLoading(true);
@@ -398,28 +400,28 @@
               resolve({ success: true, locationData, dist });
             };
 
-            const onGpsError = (err) => {
-              navigator.geolocation.getCurrentPosition(
-                onGpsSuccess,
-                (finalErr) => {
-                  setIsGpsLoading(false);
-                  let errMsg = 'Gagal mengunci lokasi GPS. Aktifkan Lokasi/GPS HP!';
-                  if (finalErr.code === 1) errMsg = 'Izin lokasi GPS ditolak oleh perangkat.';
-                  else if (finalErr.code === 2) errMsg = 'Sinyal GPS tidak tersedia.';
-                  else if (finalErr.code === 3) errMsg = 'Waktu pencarian GPS habis (Timeout).';
-
-                  setGpsError(errMsg);
-                  if (!silent) showToast(errMsg, 'error');
-                  resolve({ success: false, message: errMsg });
-                },
-                { enableHighAccuracy: false, timeout: 8000, maximumAge: 0 }
-              );
-            };
-
+            // Menggunakan maximumAge: 5000ms agar posisi yang ter-cache beberapa detik yang lalu dapat dibaca INSTAN (<100ms)
             navigator.geolocation.getCurrentPosition(
               onGpsSuccess,
-              onGpsError,
-              { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+              (err) => {
+                // Fallback cepat ke mode Low Accuracy jika High Accuracy mengalami timeout singkat
+                navigator.geolocation.getCurrentPosition(
+                  onGpsSuccess,
+                  (finalErr) => {
+                    setIsGpsLoading(false);
+                    let errMsg = 'Gagal mengunci lokasi GPS. Aktifkan Lokasi/GPS HP!';
+                    if (finalErr.code === 1) errMsg = 'Izin lokasi GPS ditolak oleh perangkat.';
+                    else if (finalErr.code === 2) errMsg = 'Sinyal GPS tidak tersedia.';
+                    else if (finalErr.code === 3) errMsg = 'Waktu pencarian GPS habis (Timeout).';
+
+                    setGpsError(errMsg);
+                    if (!silent) showToast(errMsg, 'error');
+                    resolve({ success: false, message: errMsg });
+                  },
+                  { enableHighAccuracy: false, timeout: 4000, maximumAge: 10000 }
+                );
+              },
+              { enableHighAccuracy: true, timeout: 5000, maximumAge: 5000 }
             );
           });
         };
@@ -491,19 +493,53 @@
 
         const todayIndex = currentTime.getDay();
         const todaySchedule = dailySchedules[todayIndex] || { dayName: 'Hari Ini', masuk: '07:00', pulang: '15:30', isLibur: false };
-
         const todayStr = formatLocalDate(currentTime);
-        const todayLogs = attendanceLogs.filter(l => l.tanggal === todayStr);
 
-        const todayAbsensi = {
-          datang: todayLogs.find(l => l.tipe === 'Kedatangan')?.datang || null,
-          pulang: todayLogs.find(l => l.tipe === 'Kepulangan')?.pulang || null,
-          dinasDatang: todayLogs.find(l => l.tipe === 'Dinas Kedatangan')?.datang || null,
-          dinasPulang: todayLogs.find(l => l.tipe === 'Dinas Kepulangan')?.pulang || null,
-          alfa: todayLogs.find(l => l.tipe === 'Alfa')?.keterangan || null,
-          statusDatang: todayLogs.find(l => l.tipe === 'Kedatangan')?.status || null,
-          statusPulang: todayLogs.find(l => l.tipe === 'Kepulangan')?.status || null
-        };
+        // Optimization: High-performance memoization for today's logs
+        const todayLogs = useMemo(() => {
+          return attendanceLogs.filter(l => l.tanggal === todayStr);
+        }, [attendanceLogs, todayStr]);
+
+        const todayAbsensi = useMemo(() => {
+          return {
+            datang: todayLogs.find(l => l.tipe === 'Kedatangan')?.datang || null,
+            pulang: todayLogs.find(l => l.tipe === 'Kepulangan')?.pulang || null,
+            dinasDatang: todayLogs.find(l => l.tipe === 'Dinas Kedatangan')?.datang || null,
+            dinasPulang: todayLogs.find(l => l.tipe === 'Dinas Kepulangan')?.pulang || null,
+            alfa: todayLogs.find(l => l.tipe === 'Alfa')?.keterangan || null,
+            statusDatang: todayLogs.find(l => l.tipe === 'Kedatangan')?.status || null,
+            statusPulang: todayLogs.find(l => l.tipe === 'Kepulangan')?.status || null
+          };
+        }, [todayLogs]);
+
+        // Optimization: High-performance memoization for monthly filtered logs
+        const filteredLogs = useMemo(() => {
+          return attendanceLogs.filter(log => {
+            if (!log.tanggal) return false;
+            const [y, m] = log.tanggal.split('-');
+            return y === selectedYear && m === selectedMonth;
+          });
+        }, [attendanceLogs, selectedMonth, selectedYear]);
+
+        // Optimization: High-performance memoization for statistics
+        const stats = useMemo(() => {
+          let hadir = 0, terlambat = 0, dinas = 0, alfa = 0;
+          for (let i = 0; i < filteredLogs.length; i++) {
+            const l = filteredLogs[i];
+            const status = l.status || '';
+            const tipe = l.tipe || '';
+            if (status.includes('Tepat') || status.includes('Terlambat')) hadir++;
+            if (status.includes('Terlambat')) terlambat++;
+            if (status.includes('Dinas') || tipe.includes('Dinas')) dinas++;
+            if (status.includes('Alfa') || tipe.includes('Alfa')) alfa++;
+          }
+          return { totalHadir: hadir, totalTerlambat: terlambat, totalDinas: dinas, totalAlfa: alfa };
+        }, [filteredLogs]);
+
+        // Paginated display logs to prevent DOM overload when logs grow large
+        const displayedLogs = useMemo(() => {
+          return filteredLogs.slice(0, displayLimit);
+        }, [filteredLogs, displayLimit]);
 
         const checkTimeStatus = (type) => {
           if (todaySchedule.isLibur) return { status: 'Hari Libur' };
@@ -624,7 +660,6 @@
 
           handleGetGpsLocation(true);
 
-          const todayStr = formatLocalDate(currentTime);
           const existingDinas = attendanceLogs.find(l => l.tanggal === todayStr && (l.tipe === 'Dinas Kedatangan' || l.tipe === 'Dinas Luar'));
           if (existingDinas && existingDinas.keterangan) {
             const match = existingDinas.keterangan.match(/Dinas: (.*?) \(No\. ST: (.*?)\)/);
@@ -647,7 +682,6 @@
           showToast('Mengunci lokasi GPS untuk presensi Dinas...', 'info');
           const gpsRes = await handleGetGpsLocation(true);
 
-          const todayStr = formatLocalDate(currentTime);
           const timeStr = dinasTime || formatLocalTime(currentTime);
 
           let locText = 'GPS Tidak Aktif';
@@ -692,7 +726,6 @@
 
         const handleSubmitAlfa = async (e) => {
           e.preventDefault();
-          const todayStr = formatLocalDate(currentTime);
 
           showToast('Mengunci lokasi GPS untuk pencatatan Alfa...', 'info');
           const gpsRes = await handleGetGpsLocation(true);
@@ -852,7 +885,6 @@
         const handleSaveProfileSubmit = async (e) => {
           e.preventDefault();
 
-          // Validasi Keberadaan NIP di Cloud sebelum simpan lokal
           if (webAppUrl && editFormData.nip) {
             setIsSyncingCloud(true);
             showToast('Memverifikasi NIP dan Perangkat ke Cloud...', 'info');
@@ -875,7 +907,7 @@
               if (result.status === 'error') {
                 showToast(result.message || 'NIP ini sudah terdaftar di HP lain!', 'error');
                 setIsSyncingCloud(false);
-                return; // Batalkan simpan jika NIP sudah terdaftar di HP lain
+                return;
               }
             } catch (err) {
               console.warn('Verifikasi Cloud Warning:', err);
@@ -909,17 +941,6 @@
           showToast('Jadwal operasional berhasil diperbarui!');
           syncWithCloud('saveSchedule', editScheduleData);
         };
-
-        const filteredLogs = attendanceLogs.filter(log => {
-          if (!log.tanggal) return false;
-          const [y, m] = log.tanggal.split('-');
-          return y === selectedYear && m === selectedMonth;
-        });
-
-        const totalHadir = filteredLogs.filter(l => l.status && (l.status.includes('Tepat') || l.status.includes('Terlambat'))).length;
-        const totalTerlambat = filteredLogs.filter(l => l.status && l.status.includes('Terlambat')).length;
-        const totalDinas = filteredLogs.filter(l => (l.status && l.status.includes('Dinas')) || (l.tipe && l.tipe.includes('Dinas'))).length;
-        const totalAlfa = filteredLogs.filter(l => (l.status && l.status.includes('Alfa')) || (l.tipe && l.tipe.includes('Alfa'))).length;
 
         const maxRadiusActive = KONFIGURASI_SEKOLAH.RADIUS_MAX_METER;
         const isWithinRadius = distanceToSchool !== null && distanceToSchool <= maxRadiusActive;
@@ -997,7 +1018,7 @@
                 </div>
               )}
 
-              {/* TAB 1: HOME ABSENSI */}
+              {}
               {activeTab === 'home' && (
                 <div className="space-y-4">
                   
@@ -1041,14 +1062,18 @@
                           ) : (
                             <p className="text-amber-600 italic flex items-center gap-1">
                               <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse inline-block"></span>
-                              GPS Otomatis Mengunci Lokasi HP...
+                              GPS Mengunci Lokasi HP...
                             </p>
                           )}
                         </div>
 
-                        <span className="text-[9px] bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold px-2 py-1 rounded-lg flex items-center gap-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span> GPS Auto
-                        </span>
+                        <button
+                          onClick={() => handleGetGpsLocation(false)}
+                          disabled={isGpsLoading}
+                          className="text-[9px] bg-emerald-100 text-emerald-800 border border-emerald-300 hover:bg-emerald-200 font-bold px-2 py-1 rounded-lg flex items-center gap-1"
+                        >
+                          <IconRefresh className={`w-3 h-3 ${isGpsLoading ? 'animate-spin' : ''}`} /> Fast GPS
+                        </button>
                       </div>
 
                       {distanceToSchool !== null && (
@@ -1258,13 +1283,13 @@
                 </div>
               )}
 
-              {/* TAB 2: REKAPITULASI PRESENSI */}
+              {}
               {activeTab === 'rekap' && (
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
                     <div>
                       <h2 className="text-base font-bold text-slate-800">Rekapitulasi Presensi</h2>
-                      <p className="text-xs text-slate-500">Laporan Kehadiran Bulanan</p>
+                      <p className="text-xs text-slate-500">Laporan Kehadiran Bulanan ({filteredLogs.length} Catatan)</p>
                     </div>
                     
                     <div className="flex gap-1.5">
@@ -1283,7 +1308,7 @@
                       <label className="text-[10px] text-slate-400 font-bold block mb-1">PILIH BULAN</label>
                       <select
                         value={selectedMonth}
-                        onChange={(e) => setSelectedMonth(e.target.value)}
+                        onChange={(e) => { setSelectedMonth(e.target.value); setDisplayLimit(25); }}
                         className="w-full p-2 border border-slate-300 rounded-xl font-semibold bg-slate-50"
                       >
                         <option value="01">Januari</option>
@@ -1305,7 +1330,7 @@
                       <label className="text-[10px] text-slate-400 font-bold block mb-1">PILIH TAHUN</label>
                       <select
                         value={selectedYear}
-                        onChange={(e) => setSelectedYear(e.target.value)}
+                        onChange={(e) => { setSelectedYear(e.target.value); setDisplayLimit(25); }}
                         className="w-full p-2 border border-slate-300 rounded-xl font-semibold bg-slate-50"
                       >
                         <option value="2025">2025</option>
@@ -1315,31 +1340,31 @@
                     </div>
                   </div>
 
-                  {/* Card Statistik Bulanan */}
+                  {/* Card Statistik Bulanan (Memoized) */}
                   <div className="grid grid-cols-4 gap-1.5 text-center">
                     <div className="bg-white p-2.5 rounded-2xl border border-slate-200">
                       <p className="text-[9px] text-slate-400 font-bold">TOTAL HADIR</p>
-                      <p className="text-lg font-black text-emerald-600 my-0.5">{totalHadir}</p>
+                      <p className="text-lg font-black text-emerald-600 my-0.5">{stats.totalHadir}</p>
                       <p className="text-[8px] text-slate-400">Hari</p>
                     </div>
                     <div className="bg-white p-2.5 rounded-2xl border border-slate-200">
                       <p className="text-[9px] text-slate-400 font-bold">TERLAMBAT</p>
-                      <p className="text-lg font-black text-amber-500 my-0.5">{totalTerlambat}</p>
+                      <p className="text-lg font-black text-amber-500 my-0.5">{stats.totalTerlambat}</p>
                       <p className="text-[8px] text-slate-400">Kali</p>
                     </div>
                     <div className="bg-white p-2.5 rounded-2xl border border-slate-200">
                       <p className="text-[9px] text-slate-400 font-bold">DINAS LUAR</p>
-                      <p className="text-lg font-black text-blue-600 my-0.5">{totalDinas}</p>
+                      <p className="text-lg font-black text-blue-600 my-0.5">{stats.totalDinas}</p>
                       <p className="text-[8px] text-slate-400">Kegiatan</p>
                     </div>
                     <div className="bg-white p-2.5 rounded-2xl border border-slate-200">
                       <p className="text-[9px] text-slate-400 font-bold">TOTAL ALFA</p>
-                      <p className="text-lg font-black text-rose-600 my-0.5">{totalAlfa}</p>
+                      <p className="text-lg font-black text-rose-600 my-0.5">{stats.totalAlfa}</p>
                       <p className="text-[8px] text-slate-400">Hari</p>
                     </div>
                   </div>
 
-                  {/* List Riwayat Presensi */}
+                  {/* List Riwayat Presensi dengan Limitasi Kinerja */}
                   <div className="bg-white rounded-2xl p-4 border border-slate-200 space-y-3">
                     <h3 className="text-xs font-bold text-slate-600 uppercase tracking-wider">Rincian Kehadiran</h3>
                     
@@ -1347,7 +1372,7 @@
                       <p className="text-xs text-slate-400 text-center py-6">Tidak ada catatan presensi pada bulan ini.</p>
                     ) : (
                       <div className="space-y-2.5">
-                        {filteredLogs.map(log => (
+                        {displayedLogs.map(log => (
                           <div key={log.id} className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs flex justify-between items-start">
                             <div className="space-y-1">
                               <div className="flex items-center gap-2">
@@ -1379,13 +1404,23 @@
                             </div>
                           </div>
                         ))}
+
+                        {/* Pagination Trigger Button */}
+                        {filteredLogs.length > displayLimit && (
+                          <button
+                            onClick={() => setDisplayLimit(prev => prev + 25)}
+                            className="w-full py-2 bg-slate-100 text-slate-600 border border-slate-300 rounded-xl text-xs font-bold hover:bg-slate-200 transition-all"
+                          >
+                            Tampilkan Lebih Banyak ({filteredLogs.length - displayLimit} tersisa)
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>
                 </div>
               )}
 
-              {/* TAB 3: PROFIL GURU */}
+              {}
               {activeTab === 'profile' && (
                 <div className="space-y-4">
                   <div className="bg-white rounded-2xl p-4 border border-slate-200 space-y-3">
@@ -1513,6 +1548,7 @@
               </button>
             </div>
 
+            {}
             {/* MODAL EDIT PROFIL GURU */}
             {isEditModalOpen && (
               <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -1950,22 +1986,32 @@
               <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex flex-col p-2 sm:p-4 overflow-y-auto">
                 <div className="bg-slate-900 text-white p-3 rounded-t-2xl flex justify-between items-center max-w-3xl mx-auto w-full border-b border-slate-700">
                   <div className="flex items-center gap-2">
-                    <IconEye className="w-5 h-5 text-indigo-400" />
-                    <h3 className="font-bold text-xs sm:text-sm">Pratinjau Laporan Kehadiran PDF (A4)</h3>
+                    <button
+                      onClick={() => setIsPreviewPdfModalOpen(false)}
+                      className="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 border border-slate-700 transition-all"
+                      title="Kembali ke Aplikasi"
+                    >
+                      <IconX className="w-4 h-4 text-rose-400" />
+                      <span>Kembali / Tutup</span>
+                    </button>
+                    <div className="h-4 w-px bg-slate-700 mx-1 hidden sm:block"></div>
+                    <IconEye className="w-5 h-5 text-indigo-400 hidden sm:block" />
+                    <h3 className="font-bold text-xs sm:text-sm hidden sm:block">Pratinjau Laporan PDF (A4)</h3>
                   </div>
                   
                   <div className="flex items-center gap-2">
                     <button
                       onClick={handleDownloadPdfFile}
                       disabled={isGeneratingPdf}
-                      className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-1.5 rounded-xl font-bold flex items-center gap-1 shadow-sm"
+                      className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3.5 py-1.5 rounded-xl font-bold flex items-center gap-1 shadow-sm transition-all"
                     >
                       <IconDownload className="w-3.5 h-3.5" />
                       {isGeneratingPdf ? 'Memproses...' : 'Unduh PDF'}
                     </button>
                     <button
                       onClick={() => setIsPreviewPdfModalOpen(false)}
-                      className="text-slate-400 hover:text-white p-1"
+                      className="bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 p-1.5 rounded-xl border border-rose-500/30 transition-all"
+                      title="Tutup Modal"
                     >
                       <IconX className="w-5 h-5" />
                     </button>
@@ -2068,10 +2114,10 @@
                               <p style={{ fontWeight: 'bold', margin: '0 0 6px 0', textTransform: 'uppercase', fontSize: '9px', borderBottom: '1px solid #ccc', paddingBottom: '3px' }}>
                                 REKAPITULASI KEHADIRAN
                               </p>
-                              <p style={{ margin: '3px 0' }}>• Total Kehadiran: <strong>{totalHadir} Hari</strong></p>
-                              <p style={{ margin: '3px 0' }}>• Terlambat: <strong>{totalTerlambat} Kali</strong></p>
-                              <p style={{ margin: '3px 0' }}>• Dinas Luar: <strong>{totalDinas} Kegiatan</strong></p>
-                              <p style={{ margin: '3px 0' }}>• Alfa / Tanpa Ket: <strong>{totalAlfa} Hari</strong></p>
+                              <p style={{ margin: '3px 0' }}>• Total Kehadiran: <strong>{stats.totalHadir} Hari</strong></p>
+                              <p style={{ margin: '3px 0' }}>• Terlambat: <strong>{stats.totalTerlambat} Kali</strong></p>
+                              <p style={{ margin: '3px 0' }}>• Dinas Luar: <strong>{stats.totalDinas} Kegiatan</strong></p>
+                              <p style={{ margin: '3px 0' }}>• Alfa / Tanpa Ket: <strong>{stats.totalAlfa} Hari</strong></p>
                             </div>
                           </td>
 
@@ -2102,6 +2148,26 @@
                       </tbody>
                     </table>
 
+                  </div>
+
+                  {/* Navigasi Aksi Bawah Modal (Tutup / Kembali & Unduh) */}
+                  <div className="mt-4 pt-3 border-t border-slate-700 flex justify-between items-center no-print">
+                    <button
+                      onClick={() => setIsPreviewPdfModalOpen(false)}
+                      className="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm border border-slate-600"
+                    >
+                      <IconX className="w-4 h-4 text-rose-400" />
+                      <span>Tutup / Kembali ke Aplikasi</span>
+                    </button>
+
+                    <button
+                      onClick={handleDownloadPdfFile}
+                      disabled={isGeneratingPdf}
+                      className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-4 py-2 rounded-xl font-bold flex items-center gap-1.5 shadow-md transition-all"
+                    >
+                      <IconDownload className="w-4 h-4" />
+                      {isGeneratingPdf ? 'Memproses File...' : 'Unduh File PDF (A4)'}
+                    </button>
                   </div>
                 </div>
               </div>
